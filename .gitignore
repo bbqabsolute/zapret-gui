@@ -1,0 +1,30 @@
+# .NET Build artifacts
+gui_src/bin/
+gui_src/obj/
+gui_tests/bin/
+gui_tests/obj/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+.idea/
+
+# Sing-box core is auto-downloaded by ZapretGUI on demand (~82MB)
+bin/sing-box.exe
+bin/sing-box-dl-*.zip
+bin/sb-extract-*
+
+# Runtime configs and temp files
+bin/vpn_core_config.json
+bin/test_chk_*.json
+vpn_core_config.json
+*.bak
+*.backup
+ZapretGUI.old.exe
+ZapretGUI.pdb
+
+# User's personal VPN profiles (credentials/keys)
+vpn_profiles.json

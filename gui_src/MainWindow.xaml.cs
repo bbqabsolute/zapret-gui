@@ -270,40 +270,56 @@ namespace ZapretGUI
                 TxtVpnSessionDuration.Text = $"Время работы сессии: {(DateTime.Now - _vpnService.ConnectedTime.Value):hh\\:mm\\:ss}";
             }
 
-            // Global pill
-            if (_vpnService.Status == VpnConnectionStatus.Connected)
-            {
-                string vpnNode = _vpnService.ActiveProfile?.Name ?? "Подключен";
-                if (isStandalone || srvStatus == "RUNNING")
-                {
-                    StatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentGreen");
-                    TxtGlobalStatus.Text = $"Zapret + VPN [BETA: {vpnNode}]";
-                    StatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentPurple");
-                }
-                else
-                {
-                    StatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentPurple");
-                    TxtGlobalStatus.Text = $"VPN [BETA]: {vpnNode}";
-                    StatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentPurple");
-                }
-            }
-            else if (isStandalone)
+            // 1. Zapret Live Indicator Pill
+            bool isZapretActive = isStandalone || srvStatus == "RUNNING";
+            if (isStandalone)
             {
                 StatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentGreen");
-                TxtGlobalStatus.Text = $"Zapret: Standalone (PID: {_core.StandalonePid})";
+                TxtGlobalStatus.Text = "Zapret: Активен (процесс)";
                 StatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentGreen");
+                StatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 16, 185, 129));
             }
             else if (srvStatus == "RUNNING")
             {
                 StatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentGreen");
-                TxtGlobalStatus.Text = $"Zapret: Служба [{srvStrategy}]";
+                TxtGlobalStatus.Text = string.IsNullOrEmpty(srvStrategy) ? "Zapret: Служба" : $"Zapret: Служба ({srvStrategy})";
                 StatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentGreen");
+                StatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 16, 185, 129));
             }
             else
             {
                 StatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentRed");
-                TxtGlobalStatus.Text = "Zapret: Остановлен";
+                TxtGlobalStatus.Text = "Zapret: Выключен";
                 StatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("BorderCard");
+                StatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 22, 25, 37));
+            }
+
+            // Quick action buttons state
+            BtnQuickStart.IsEnabled = !isZapretActive;
+            BtnQuickStop.IsEnabled = isZapretActive;
+
+            // 2. VPN Live Indicator Pill
+            if (_vpnService.Status == VpnConnectionStatus.Connected)
+            {
+                string vpnNode = _vpnService.ActiveProfile?.Name ?? "Подключен";
+                VpnStatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentPurple");
+                TxtGlobalVpnStatus.Text = $"VPN: {vpnNode}";
+                VpnStatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentPurple");
+                VpnStatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(32, 139, 92, 246));
+            }
+            else if (_vpnService.Status == VpnConnectionStatus.Connecting)
+            {
+                VpnStatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentYellow");
+                TxtGlobalVpnStatus.Text = "VPN: Подключение...";
+                VpnStatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("AccentYellow");
+                VpnStatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(28, 245, 158, 11));
+            }
+            else
+            {
+                VpnStatusIndicatorDot.Fill = (SolidColorBrush)FindResource("AccentRed");
+                TxtGlobalVpnStatus.Text = "VPN: Отключен";
+                VpnStatusPillBorder.BorderBrush = (SolidColorBrush)FindResource("BorderCard");
+                VpnStatusPillBorder.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(255, 22, 25, 37));
             }
 
             _trayManager?.UpdateStatus();
@@ -315,7 +331,7 @@ namespace ZapretGUI
             {
                 DpiScale dpi = VisualTreeHelper.GetDpi(this);
                 int percent = (int)Math.Round(dpi.DpiScaleX * 100);
-                TxtDpiBadge.Text = $"🖥️ DPI: {percent}% ({dpi.PixelsPerInchX:F0} dpi)";
+                TxtDpiBadge.Text = $"🖥️ DPI: {percent}%";
             }
             catch
             {
@@ -421,12 +437,14 @@ namespace ZapretGUI
             {
                 await _core.StartStandaloneAsync(strategy, TxtStrategyArgs.Text.Trim());
             }
+            RefreshStatus();
         }
 
         private async void BtnQuickStop_Click(object sender, RoutedEventArgs e)
         {
             await _core.StopStandaloneAsync();
             await _core.StopServiceAsync();
+            RefreshStatus();
         }
 
         private void BtnBrowseFolder_Click(object sender, RoutedEventArgs e)
@@ -1026,11 +1044,30 @@ namespace ZapretGUI
             {
                 TxtVpnActiveNodeName.Text = $"Выбранный узел: {selected.Name}";
                 TxtVpnActiveNodeEndpoint.Text = $"Адрес: {selected.Server}:{selected.Port} | Протокол: {selected.ProtocolBadge} ({selected.DetailsSummary})";
+
+                if (selected.HttpPingMs.HasValue && selected.HttpPingMs.Value >= 0)
+                {
+                    TxtVpnExitLatency.Text = $"{selected.HttpPingMs.Value} ms";
+                    TxtVpnExitIp.Text = string.IsNullOrEmpty(selected.ExitIp) ? "—" : selected.ExitIp;
+                    TxtVpnExitLocation.Text = selected.ExitLocationSummary;
+                    TxtVpnExitOrg.Text = string.IsNullOrEmpty(selected.ExitOrg) ? "Готов к работе" : selected.ExitOrg;
+                }
+                else
+                {
+                    TxtVpnExitLatency.Text = selected.PingMs.HasValue && selected.PingMs.Value >= 0 ? $"{selected.PingMs.Value} ms" : "—";
+                    TxtVpnExitIp.Text = "—";
+                    TxtVpnExitLocation.Text = "—";
+                    TxtVpnExitOrg.Text = "—";
+                }
             }
             else if (_vpnService.ActiveProfile == null)
             {
                 TxtVpnActiveNodeName.Text = "Выбранный узел: Не выбран";
                 TxtVpnActiveNodeEndpoint.Text = "Адрес: — | Протокол: —";
+                TxtVpnExitLatency.Text = "—";
+                TxtVpnExitIp.Text = "—";
+                TxtVpnExitLocation.Text = "—";
+                TxtVpnExitOrg.Text = "—";
             }
         }
 

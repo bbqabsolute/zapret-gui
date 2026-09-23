@@ -24,6 +24,7 @@ vpn_core_config.json
 *.bak
 *.backup
 ZapretGUI.old.exe
+ZapretGUI.running.exe
 ZapretGUI.pdb
 
 # User's personal VPN profiles (credentials/keys)

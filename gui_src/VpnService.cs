@@ -1008,7 +1008,7 @@ namespace ZapretGUI
             catch { }
         }
 
-        public static async Task<bool> WaitForPortListeningAsync(string host, int port, int timeoutMs = 2500, CancellationToken ct = default)
+        public static async Task<bool> WaitForPortListeningAsync(string host, int port, int timeoutMs = 2000, CancellationToken ct = default)
         {
             var sw = Stopwatch.StartNew();
             while (sw.ElapsedMilliseconds < timeoutMs && !ct.IsCancellationRequested)
@@ -1016,7 +1016,7 @@ namespace ZapretGUI
                 try
                 {
                     using var tcp = new TcpClient();
-                    using var probeCts = new CancellationTokenSource(100);
+                    using var probeCts = new CancellationTokenSource(40);
                     using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, probeCts.Token);
                     await tcp.ConnectAsync(host, port, linked.Token);
                     return true;
@@ -1025,7 +1025,7 @@ namespace ZapretGUI
                 {
                     try
                     {
-                        await Task.Delay(50, ct);
+                        await Task.Delay(15, ct);
                     }
                     catch (OperationCanceledException)
                     {
@@ -1677,12 +1677,13 @@ namespace ZapretGUI
             {
                 Proxy = webProxy,
                 UseProxy = true,
-                ConnectTimeout = TimeSpan.FromSeconds(6)
+                ConnectTimeout = TimeSpan.FromSeconds(2.5),
+                PooledConnectionLifetime = TimeSpan.Zero
             };
 
             using var client = new HttpClient(handler)
             {
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(3.5)
             };
             client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
@@ -1693,95 +1694,112 @@ namespace ZapretGUI
             string city = "";
             string org = "";
 
-            // Tier 1: ipwho.is - rich metadata
+            // Ultra-fast Tier 1: Parallel race of Cloudflare CDN-CGI Anycast trace & ip-api.com
+            // Cloudflare Anycast responds in 30-80ms worldwide without rate limits.
+            // ip-api.com provides instant city & ISP/org over lightweight HTTP.
             try
             {
-                using var response = await client.GetAsync("https://ipwho.is/", ct);
+                var cfTask = client.GetAsync("https://www.cloudflare.com/cdn-cgi/trace", ct);
+                var ipApiTask = client.GetAsync("http://ip-api.com/json/?fields=status,country,countryCode,city,org,query", ct);
+
+                var completed = await Task.WhenAny(cfTask, ipApiTask);
                 sw.Stop();
 
-                if (response.IsSuccessStatusCode)
+                if (completed == cfTask && cfTask.IsCompletedSuccessfully && cfTask.Result.IsSuccessStatusCode)
                 {
-                    string responseBody = await response.Content.ReadAsStringAsync(ct);
-                    using var doc = JsonDocument.Parse(responseBody);
-                    var root = doc.RootElement;
-
-                    if (root.TryGetProperty("success", out var succ) && succ.GetBoolean())
+                    string traceText = await cfTask.Result.Content.ReadAsStringAsync(ct);
+                    foreach (var line in traceText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
                     {
-                        if (root.TryGetProperty("ip", out var ipProp)) ip = ipProp.GetString() ?? "";
-                        if (root.TryGetProperty("country", out var cProp)) country = cProp.GetString() ?? "";
-                        if (root.TryGetProperty("country_code", out var ccProp)) countryCode = ccProp.GetString() ?? "";
-                        if (root.TryGetProperty("city", out var cityProp)) city = cityProp.GetString() ?? "";
-                        if (root.TryGetProperty("connection", out var conn) && conn.TryGetProperty("org", out var orgProp))
+                        if (line.StartsWith("ip=")) ip = line.Substring(3).Trim();
+                        if (line.StartsWith("loc=")) countryCode = line.Substring(4).Trim();
+                    }
+                    if (!string.IsNullOrEmpty(countryCode))
+                    {
+                        country = VpnProfile.GetCountryName(countryCode);
+                    }
+
+                    // Quick non-blocking attempt to enrich city & org from ipApiTask if it completes within 300ms
+                    try
+                    {
+                        using var quickCts = new CancellationTokenSource(300);
+                        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, quickCts.Token);
+                        var ipApiResp = await ipApiTask.WaitAsync(linked.Token);
+                        if (ipApiResp.IsSuccessStatusCode)
                         {
-                            org = orgProp.GetString() ?? "";
+                            string json = await ipApiResp.Content.ReadAsStringAsync(ct);
+                            using var doc = JsonDocument.Parse(json);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("city", out var cityProp)) city = cityProp.GetString() ?? "";
+                            if (root.TryGetProperty("org", out var orgProp)) org = orgProp.GetString() ?? "";
                         }
                     }
+                    catch { }
+                }
+                else if (completed == ipApiTask && ipApiTask.IsCompletedSuccessfully && ipApiTask.Result.IsSuccessStatusCode)
+                {
+                    string json = await ipApiTask.Result.Content.ReadAsStringAsync(ct);
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("query", out var qProp)) ip = qProp.GetString() ?? "";
+                    if (root.TryGetProperty("country", out var cProp)) country = cProp.GetString() ?? "";
+                    if (root.TryGetProperty("countryCode", out var ccProp)) countryCode = ccProp.GetString() ?? "";
+                    if (root.TryGetProperty("city", out var cityProp)) city = cityProp.GetString() ?? "";
+                    if (root.TryGetProperty("org", out var orgProp)) org = orgProp.GetString() ?? "";
+                }
+                else
+                {
+                    // If the first task that finished was an error, check the remaining task
+                    var remaining = completed == cfTask ? ipApiTask : cfTask;
+                    try
+                    {
+                        var remResp = await remaining;
+                        if (remResp.IsSuccessStatusCode)
+                        {
+                            sw.Stop();
+                            if (remaining == cfTask)
+                            {
+                                string traceText = await remResp.Content.ReadAsStringAsync(ct);
+                                foreach (var line in traceText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    if (line.StartsWith("ip=")) ip = line.Substring(3).Trim();
+                                    if (line.StartsWith("loc=")) countryCode = line.Substring(4).Trim();
+                                }
+                                if (!string.IsNullOrEmpty(countryCode)) country = VpnProfile.GetCountryName(countryCode);
+                            }
+                            else
+                            {
+                                string json = await remResp.Content.ReadAsStringAsync(ct);
+                                using var doc = JsonDocument.Parse(json);
+                                var root = doc.RootElement;
+                                if (root.TryGetProperty("query", out var qProp)) ip = qProp.GetString() ?? "";
+                                if (root.TryGetProperty("country", out var cProp)) country = cProp.GetString() ?? "";
+                                if (root.TryGetProperty("countryCode", out var ccProp)) countryCode = ccProp.GetString() ?? "";
+                                if (root.TryGetProperty("city", out var cityProp)) city = cityProp.GetString() ?? "";
+                                if (root.TryGetProperty("org", out var orgProp)) org = orgProp.GetString() ?? "";
+                            }
+                        }
+                    }
+                    catch { }
                 }
             }
             catch (Exception ex)
             {
-                Log($"[VPN-Verify] ipwho.is не ответил через прокси ({ex.Message}), опрос резервного сервиса Cloudflare...");
+                Log($"[VPN-Verify] Параллельный опрос не ответил ({ex.Message}), опрос резервного сервиса...");
             }
 
-            // Tier 2: Cloudflare CDN-CGI trace - unblockable, ultrafast, zero rate-limit
-            if (string.IsNullOrEmpty(ip))
+            // Tier 2 Fallback: api.ipify.org (compact JSON, fast 1.5s timeout)
+            if (string.IsNullOrEmpty(ip) && !ct.IsCancellationRequested)
             {
                 try
                 {
+                    using var quickFbCts = new CancellationTokenSource(1500);
+                    using var linkedFb = CancellationTokenSource.CreateLinkedTokenSource(ct, quickFbCts.Token);
                     sw.Restart();
-                    using var cfResponse = await client.GetAsync("https://www.cloudflare.com/cdn-cgi/trace", ct);
-                    sw.Stop();
-                    if (cfResponse.IsSuccessStatusCode)
-                    {
-                        string traceText = await cfResponse.Content.ReadAsStringAsync(ct);
-                        foreach (var line in traceText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-                        {
-                            if (line.StartsWith("ip=")) ip = line.Substring(3).Trim();
-                            if (line.StartsWith("loc=")) countryCode = line.Substring(4).Trim();
-                        }
-                        if (!string.IsNullOrEmpty(countryCode) && string.IsNullOrEmpty(country))
-                        {
-                            country = VpnProfile.GetCountryName(countryCode);
-                        }
-                    }
-                }
-                catch { }
-            }
-
-            // Tier 3: ipapi.co
-            if (string.IsNullOrEmpty(ip))
-            {
-                try
-                {
-                    sw.Restart();
-                    using var apiResponse = await client.GetAsync("https://ipapi.co/json/", ct);
-                    sw.Stop();
-                    if (apiResponse.IsSuccessStatusCode)
-                    {
-                        string apiJson = await apiResponse.Content.ReadAsStringAsync(ct);
-                        using var doc = JsonDocument.Parse(apiJson);
-                        var root = doc.RootElement;
-                        if (root.TryGetProperty("ip", out var ipProp)) ip = ipProp.GetString() ?? "";
-                        if (root.TryGetProperty("country_name", out var cProp)) country = cProp.GetString() ?? "";
-                        if (root.TryGetProperty("country_code", out var ccProp)) countryCode = ccProp.GetString() ?? "";
-                        if (root.TryGetProperty("city", out var cityProp)) city = cityProp.GetString() ?? "";
-                        if (root.TryGetProperty("org", out var orgProp)) org = orgProp.GetString() ?? "";
-                    }
-                }
-                catch { }
-            }
-
-            // Tier 4: api.ipify.org
-            if (string.IsNullOrEmpty(ip))
-            {
-                try
-                {
-                    sw.Restart();
-                    using var fbResponse = await client.GetAsync("https://api.ipify.org?format=json", ct);
+                    using var fbResponse = await client.GetAsync("https://api.ipify.org?format=json", linkedFb.Token);
                     sw.Stop();
                     if (fbResponse.IsSuccessStatusCode)
                     {
-                        string fbJson = await fbResponse.Content.ReadAsStringAsync(ct);
+                        string fbJson = await fbResponse.Content.ReadAsStringAsync(linkedFb.Token);
                         using var doc = JsonDocument.Parse(fbJson);
                         if (doc.RootElement.TryGetProperty("ip", out var ipProp))
                         {
@@ -1827,7 +1845,7 @@ namespace ZapretGUI
 
             Log($"[VPN-Verify] Запуск проверки через HTTP GET для {Profiles.Count} узлов...");
             int completed = 0;
-            using var semaphore = new SemaphoreSlim(2);
+            using var semaphore = new SemaphoreSlim(6);
 
             var tasks = Profiles.Select(async p =>
             {

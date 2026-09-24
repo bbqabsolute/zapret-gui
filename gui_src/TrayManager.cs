@@ -20,13 +20,13 @@ namespace ZapretGUI
 
             _notifyIcon = new NotifyIcon
             {
-                Text = "Zapret DPI Manager",
+                Text = "ZapretVPN",
                 Visible = true,
                 Icon = CreateShieldIcon()
             };
 
             var contextMenu = new ContextMenuStrip();
-            contextMenu.Items.Add("Открыть Zapret GUI", null, (s, e) => ShowMainWindow());
+            contextMenu.Items.Add("Открыть ZapretVPN", null, (s, e) => ShowMainWindow());
             contextMenu.Items.Add(new ToolStripSeparator());
             
             var runItem = new ToolStripMenuItem("Быстрый старт (Standalone)", null, async (s, e) =>
@@ -98,7 +98,7 @@ namespace ZapretGUI
             try
             {
                 using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
-                return key?.GetValue("ZapretGUI") != null;
+                return key?.GetValue("ZapretVPN") != null || key?.GetValue("ZapretGUI") != null;
             }
             catch { return false; }
         }
@@ -115,11 +115,13 @@ namespace ZapretGUI
                     string exePath = Environment.ProcessPath ?? "";
                     if (!string.IsNullOrEmpty(exePath))
                     {
-                        key.SetValue("ZapretGUI", $"\"{exePath}\" --minimized");
+                        key.SetValue("ZapretVPN", $"\"{exePath}\" --minimized");
                     }
+                    key.DeleteValue("ZapretGUI", false);
                 }
                 else
                 {
+                    key.DeleteValue("ZapretVPN", false);
                     key.DeleteValue("ZapretGUI", false);
                 }
             }

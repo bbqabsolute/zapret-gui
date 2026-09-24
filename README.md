@@ -1,4 +1,4 @@
-# Zapret DPI & VPN Manager (Flowseal Edition)
+# ZapretVPN (Flowseal Edition)
 
 <p align="center">
   <img src="https://img.shields.io/github/v/release/bbqabsolute/zapret-gui?style=for-the-badge&color=6366f1" alt="Release">
@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Status-Stable-10b981?style=for-the-badge" alt="Status">
 </p>
 
-Современный, удобный и производительный графический интерфейс (GUI) для обхода замедлений и блокировок YouTube, Discord и других сервисов через **Zapret**, со встроенным клиентом **VPN & Прокси** и автоматическим тестированием доступности.
+Современный, удобный и производительный графический клиент **ZapretVPN** для обхода замедлений и блокировок YouTube, Discord и других сервисов через **Zapret**, со встроенным клиентом **VPN & Прокси** и автоматическим тестированием доступности.
 
 > [!IMPORTANT]
 > **Благодарности и основа проекта:**  
@@ -22,8 +22,8 @@
 
 | Файл | Описание | Ссылка |
 |---|---|---|
-| 📦 **`Zapret-GUI-v1.10.2.zip`** *(1.8 МБ)* | **Полный комплект (рекомендуется)**. Включает всё необходимое: `ZapretGUI.exe`, все 22 BAT-стратегии Flowseal, `winws.exe`, драйвер `WinDivert`, списки и фейки. Распакуйте и запускайте. | [Скачать ZIP](https://github.com/bbqabsolute/zapret-gui/releases/download/v1.10.2/Zapret-GUI-v1.10.2.zip) |
-| 🚀 **`ZapretGUI.exe`** *(390 КБ)* | Отдельный исполняемый файл приложения (для обновления существующей папки Zapret). | [Скачать EXE](https://github.com/bbqabsolute/zapret-gui/releases/download/v1.10.2/ZapretGUI.exe) |
+| 📦 **`ZapretVPN-v1.10.2.zip`** *(1.8 МБ)* | **Полный комплект (рекомендуется)**. Включает всё необходимое: `ZapretVPN.exe`, все 22 BAT-стратегии Flowseal, `winws.exe`, драйвер `WinDivert`, списки и фейки. Распакуйте и запускайте. | [Скачать ZIP](https://github.com/bbqabsolute/zapret-gui/releases/download/v1.10.2/ZapretVPN-v1.10.2.zip) |
+| 🚀 **`ZapretVPN.exe`** *(390 КБ)* | Отдельный исполняемый файл приложения (для обновления существующей папки Zapret). | [Скачать EXE](https://github.com/bbqabsolute/zapret-gui/releases/download/v1.10.2/ZapretVPN.exe) |
 
 ---
 

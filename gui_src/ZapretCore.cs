@@ -707,7 +707,7 @@ namespace ZapretGUI
                         return false;
                     }
 
-                    RunCommandSync("sc.exe", "description zapret \"Zapret DPI bypass software\"");
+                    RunCommandSync("sc.exe", "description zapret \"ZapretVPN DPI bypass software\"");
                     
                     // Add registry value for strategy name
                     try

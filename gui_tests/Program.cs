@@ -141,10 +141,11 @@ start ""zapret: test"" /min ""%BIN%winws.exe"" --wf-tcp=80,443,%GameFilterTCP% ^
             Assert(!string.IsNullOrEmpty(discoveredRoot) && ZapretCore.IsValidZapretRoot(discoveredRoot), "FindZapretRoot successfully found valid root dynamically");
 
             // Test 12: Output Single-file executable verification
-            string exePath = Path.Combine(core.ZapretRoot, "ZapretGUI.exe");
-            Assert(File.Exists(exePath), "ZapretGUI.exe exists in zapret root");
+            string exePath = Path.Combine(core.ZapretRoot, "ZapretVPN.exe");
+            if (!File.Exists(exePath)) exePath = Path.Combine(core.ZapretRoot, "ZapretGUI.exe");
+            Assert(File.Exists(exePath), "ZapretVPN.exe exists in zapret root");
             var fi = new FileInfo(exePath);
-            Assert(fi.Length > 200_000, $"ZapretGUI.exe size is valid ({fi.Length} bytes)");
+            Assert(fi.Length > 200_000, $"ZapretVPN.exe size is valid ({fi.Length} bytes)");
 
             // Test 13: High-DPI Configuration & Manifest Verification
             string manifestPath = Path.Combine(core.ZapretRoot, "gui_src", "app.manifest");

@@ -105,10 +105,10 @@ namespace ZapretGUI
                 {
                     WindowState = WindowState.Minimized;
                     Hide();
-                    _trayManager?.ShowNotification("Zapret GUI", "Приложение запущено в системном трее.", Forms.ToolTipIcon.Info);
+                    _trayManager?.ShowNotification("ZapretVPN", "Приложение запущено в системном трее.", Forms.ToolTipIcon.Info);
                 }
 
-                _core.Log("Zapret GUI инициализирован успешно.");
+                _core.Log("ZapretVPN инициализирован успешно.");
                 await RunDiagnosticsAsync();
             }
             catch (Exception ex)
@@ -133,7 +133,7 @@ namespace ZapretGUI
             {
                 e.Cancel = true;
                 Hide();
-                _trayManager?.ShowNotification("Zapret GUI", "Приложение свернуто в системный трей.", Forms.ToolTipIcon.Info);
+                _trayManager?.ShowNotification("ZapretVPN", "Приложение свернуто в системный трей.", Forms.ToolTipIcon.Info);
             }
             else
             {
@@ -174,7 +174,7 @@ namespace ZapretGUI
             if (!string.IsNullOrEmpty(TxtConsoleLog.Text))
             {
                 System.Windows.Clipboard.SetText(TxtConsoleLog.Text);
-                MessageBox.Show("Журнал скопирован в буфер обмена.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Журнал скопирован в буфер обмена.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -344,7 +344,7 @@ namespace ZapretGUI
         {
             if (CmbStrategies.SelectedItem is not StrategyInfo strategy)
             {
-                MessageBox.Show("Выберите стратегию из списка.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выберите стратегию из списка.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -385,7 +385,7 @@ namespace ZapretGUI
         {
             if (CmbStrategies.SelectedItem is not StrategyInfo strategy)
             {
-                MessageBox.Show("Выберите стратегию для установки службы.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выберите стратегию для установки службы.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -393,11 +393,11 @@ namespace ZapretGUI
             bool ok = await _core.InstallServiceAsync(strategy, customArgs);
             if (ok)
             {
-                MessageBox.Show($"Служба 'zapret' успешно создана и запущена со стратегией '{strategy.Name}'!", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Служба 'zapret' успешно создана и запущена со стратегией '{strategy.Name}'!", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show("Ошибка при создании службы. Подробности в журнале.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Ошибка при создании службы. Подробности в журнале.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -422,7 +422,7 @@ namespace ZapretGUI
             if (res == MessageBoxResult.Yes)
             {
                 await _core.RemoveAllServicesAsync();
-                MessageBox.Show("Службы zapret и WinDivert удалены.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Службы zapret и WinDivert удалены.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -611,7 +611,7 @@ namespace ZapretGUI
         {
             ZapretCore.EnableTcpTimestamps();
             _core.Log("[TCP] Команда включения TCP timestamps выполнена.");
-            MessageBox.Show("TCP Timestamps успешно включены через netsh.", "Zapret GUI", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("TCP Timestamps успешно включены через netsh.", "ZapretVPN", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         #endregion

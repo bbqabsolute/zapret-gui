@@ -13,9 +13,10 @@
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PublishReadyToRun>false</PublishReadyToRun>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <AssemblyTitle>Zapret GUI</AssemblyTitle>
-    <AssemblyDescription>Zapret Service and Standalone Manager GUI</AssemblyDescription>
+    <AssemblyName>ZapretVPN</AssemblyName>
+    <AssemblyTitle>ZapretVPN</AssemblyTitle>
+    <Product>ZapretVPN</Product>
+    <AssemblyDescription>ZapretVPN - DPI Bypass &amp; VPN Client</AssemblyDescription>
     <AssemblyVersion>1.10.2.0</AssemblyVersion>
     <FileVersion>1.10.2.0</FileVersion>
   </PropertyGroup>

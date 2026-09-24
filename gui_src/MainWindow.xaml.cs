@@ -83,7 +83,7 @@ namespace ZapretGUI
 
                 if (!isAdmin)
                 {
-                    TxtStatusBar.Text = "⚠️ Запущено без прав администратора. Некоторые функции (служба, драйвер) требуют прав администратора.";
+                    TxtStatusBar.Text = "[Внимание] Запущено без прав администратора. Некоторые функции (служба, драйвер) требуют прав администратора.";
                     _core.Log("[WARN] Приложение запущено без прав администратора. Службы и WinDivert требуют прав администратора.");
                 }
 
@@ -331,11 +331,11 @@ namespace ZapretGUI
             {
                 DpiScale dpi = VisualTreeHelper.GetDpi(this);
                 int percent = (int)Math.Round(dpi.DpiScaleX * 100);
-                TxtDpiBadge.Text = $"🖥️ DPI: {percent}%";
+                TxtDpiBadge.Text = $"DPI: {percent}%";
             }
             catch
             {
-                TxtDpiBadge.Text = "🖥️ DPI: 100%";
+                TxtDpiBadge.Text = "DPI: 100%";
             }
         }
 
@@ -700,7 +700,7 @@ namespace ZapretGUI
 
             TxtListContent.IsReadOnly = true;
             BtnSaveList.IsEnabled = false;
-            TxtSearchWarning.Text = $"⚠️ Режим поиска ({matchingLines.Count} совпадений). Сохранение заблокировано для защиты данных.";
+            TxtSearchWarning.Text = $"[Поиск] Найдено совпадений: {matchingLines.Count}. Сохранение заблокировано для защиты данных.";
             TxtSearchWarning.Visibility = Visibility.Visible;
 
             TxtListContent.Text = string.Join(Environment.NewLine, matchingLines);
@@ -1291,7 +1291,7 @@ namespace ZapretGUI
             }
 
             BtnVpnTestAllPings.IsEnabled = false;
-            BtnVpnTestAllPings.Content = "⏳ Проверка...";
+            BtnVpnTestAllPings.Content = "Проверка...";
             TxtStatusBar.Text = $"[VPN-Beta] Проверка пинга {_vpnService.Profiles.Count} узлов...";
 
             try
@@ -1304,7 +1304,7 @@ namespace ZapretGUI
             finally
             {
                 BtnVpnTestAllPings.IsEnabled = true;
-                BtnVpnTestAllPings.Content = "⚡ Проверить пинг всех";
+                BtnVpnTestAllPings.Content = "Пинг всех (TCP)";
             }
         }
 
@@ -1376,8 +1376,8 @@ namespace ZapretGUI
             }
 
             BtnVpnVerifyHttpGet.IsEnabled = false;
-            string prevBtnText = BtnVpnVerifyHttpGet.Content.ToString() ?? "🌐 Проверить соединение (HTTP GET)";
-            BtnVpnVerifyHttpGet.Content = "⏳ Проверка GET...";
+            string prevBtnText = BtnVpnVerifyHttpGet.Content?.ToString() ?? "Проверить (GET)";
+            BtnVpnVerifyHttpGet.Content = "Проверка GET...";
             TxtStatusBar.Text = $"[VPN-Verify] Проверка узла '{target.Name}' через HTTP GET запрос...";
 
             try
@@ -1414,8 +1414,8 @@ namespace ZapretGUI
             if (sender is System.Windows.Controls.Button btn && btn.Tag is VpnProfile profile)
             {
                 btn.IsEnabled = false;
-                string prevText = btn.Content.ToString() ?? "🌐 GET тест";
-                btn.Content = "⏳...";
+                string prevText = btn.Content?.ToString() ?? "GET";
+                btn.Content = "...";
                 try
                 {
                     await _vpnService.VerifyProxyViaHttpGetAsync(profile);
@@ -1438,8 +1438,8 @@ namespace ZapretGUI
             }
 
             BtnVpnVerifyAllHttpGet.IsEnabled = false;
-            string prevBtnText = BtnVpnVerifyAllHttpGet.Content.ToString() ?? "🌐 Проверить все (GET)";
-            BtnVpnVerifyAllHttpGet.Content = "⏳ Проверка GET...";
+            string prevBtnText = BtnVpnVerifyAllHttpGet.Content?.ToString() ?? "Проверить все";
+            BtnVpnVerifyAllHttpGet.Content = "Проверка GET...";
             TxtStatusBar.Text = $"[VPN-Verify] Проверка через HTTP GET для {_vpnService.Profiles.Count} узлов...";
 
             try
@@ -1464,8 +1464,8 @@ namespace ZapretGUI
         private async void BtnVpnInstallCore_Click(object sender, RoutedEventArgs e)
         {
             BtnVpnInstallCore.IsEnabled = false;
-            string prevText = BtnVpnInstallCore.Content.ToString() ?? "⚙️ Ядро sing-box";
-            BtnVpnInstallCore.Content = "⏳ Установка...";
+            string prevText = BtnVpnInstallCore.Content?.ToString() ?? "Ядро sing-box";
+            BtnVpnInstallCore.Content = "Установка...";
             TxtStatusBar.Text = "[VPN] Установка/обновление ядра sing-box...";
 
             try
